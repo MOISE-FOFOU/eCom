@@ -1,70 +1,82 @@
-<?php include "db_conn.php" ?>
-
-<?php
+<?php 
+include "db_conn.php"; 
 session_start();
+
 if (isset($_POST['submit'])) {
 
-    function validate($data)
-    {
-        $data = trim($data);
-        $data = stripslashes($data);
-        $data = htmlspecialchars($data);
-        return $data;
+    function validate($data) {
+        return htmlspecialchars(trim($data));
     }
 
-    $fname = validate($_POST['fname']);
-    $lname = validate($_POST['lname']);
-    $email = validate($_POST['email']);
-    $addressline1 = validate($_POST['addressline1']);
-    $addressline2 = validate($_POST['addressline2']);
-    $city = validate($_POST['city']);
-    $postalcode = validate($_POST['postalcode']);
-    $pass = validate($_POST['password']);
+    $fname = validate($_POST['Fname']);
+    $lname = validate($_POST['Lname']);
+    $email = filter_var($_POST['Email'], FILTER_VALIDATE_EMAIL);
+    $pass = validate($_POST['Password']);
     $confpass = validate($_POST['confpwd']);
+    $status = "True"; 
+
+    if (!$email) {
+        header("Location: signup.php?error=Invalid email format");
+        exit();
+    }
 
     if (empty($fname)) {
         header("Location: signup.php?error=First Name is required");
         exit();
-    } else if (empty($lname)) {
+    } 
+    if (empty($lname)) {
         header("Location: signup.php?error=Last Name is required");
         exit();
     }
-    if (empty($email)) {
-        header("Location: signup.php?error=Email is required");
-        exit();
-    }else if (empty($pass)) {
+    if (empty($pass)) {
         header("Location: signup.php?error=Password is required");
         exit();
-    } else if (strlen($pass) <= 4) {
-        header("Location: signup.php?error=Password is short");
-    } else if (empty($confpass)) {
+    } 
+    if (strlen($pass) <= 4) {
+        header("Location: signup.php?error=Password is too short");
+        exit();
+    } 
+    if (empty($confpass)) {
         header("Location: signup.php?error=Confirm Your Password");
         exit();
-    } else if ($pass != $confpass) {
+    } 
+    if ($pass !== $confpass) {
         header("Location: signup.php?error=The confirmation password does not match");
         exit();
+    }
+
+    // Hachage avec MD5 (⚠️ Peu sécurisé)
+    $securedpass = md5($pass);
+
+    // Vérification de l'existence de l'email
+    $stmt = $conn->prepare("SELECT * FROM users WHERE Email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        header("Location: signup.php?error=Try another email");
+        exit();
     } else {
-        $securedpass = md5($pass);
+        // Inscription avec requête préparée
+        $stmt = $conn->prepare("INSERT INTO users (Email, Fname, Lname, Password, status) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssss", $email, $fname, $lname, $securedpass, $status);
 
-        $sql = "SELECT * FROM users WHERE Email='$email'";
-        $result = $conn->query($sql);
+        if ($stmt->execute()) {
+            // Connexion automatique après inscription
+            $_SESSION['Email'] = $email;
+            $_SESSION['Fname'] = $fname;
+            $_SESSION['Lname'] = $lname;
 
-        if ($result->num_rows > 0) {
-            header("Location: signup.php?error=Try another email");
+            header("Location: index.php"); // Redirige directement vers l'accueil
             exit();
         } else {
-            //sending verification link
-            $sql2 = "INSERT INTO users(Email,Fname,Lname,AddressLine1,AddressLine2,City,PostalCode, Password ,status) VALUES ('$email', '$fname', '$lname','$addressline1','$addressline2','$city','$postalcode','$securedpass' ,'False')";
-            $conn->query($sql2);
-            header("Location:signup.php?success=Activation Email Sent!");
-            include "send-email.php";
-
+            header("Location: signup.php?error=Database error, please try again");
+            exit();
         }
     }
-}
-else{
-    header("Location: signup.php");
+} else {
+    header("Location: signup.php?error=Database error, please try again");
     exit();
 }  
-
 ?>

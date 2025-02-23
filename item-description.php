@@ -1,262 +1,153 @@
 <?php
-
+session_start();
 include "db_conn.php";
 
+// Vérifier l'authentification de l'utilisateur
+$email = $_SESSION['email'] ?? $_SESSION['admin_email'] ?? null;
 
-if (isset($_SESSION['email'])) {
-    $email = $_SESSION['email'];
+// Récupérer l'ID du produit depuis l'URL
+$productId = $_GET['itemid'] ?? null;
+
+if (!$productId) {
+    die("Produit introuvable.");
 }
-else if(isset($_SESSION['admin_email'])) {
-    $email = $_SESSION['admin_email'];
+
+// Récupérer les détails du produit
+$sqlQuery = "SELECT * FROM products WHERE item_id = ?";
+$stmt = $conn->prepare($sqlQuery);
+$stmt->bind_param("i", $productId);
+$stmt->execute();
+$product = $stmt->get_result()->fetch_assoc();
+
+if (!$product) {
+    die("Produit introuvable.");
 }
 
-//get product id using incoming url
-$productId = $_GET['itemid'];
-
-
-//get that product details from database
-$sqlQuery = "SELECT * FROM products WHERE item_id = '$productId'";
-
-$result = $conn->query($sqlQuery);
-$product = $result->fetch_assoc();
-
-//get same category products for related products section
-$sqlQuery2 = "select * from products WHERE category = '".$product['category']."' AND item_id != '$productId' ";
-$result2 = $conn->query($sqlQuery2);
-
-$sqlQuery3 = "SELECT * FROM products WHERE item_id = '$productId'";
-$result3 = $conn->query($sqlQuery3);
-$product3 = $result3->fetch_assoc();
-
+// Produits de la même catégorie
+$sqlQuery2 = "SELECT * FROM products WHERE category = ? AND item_id != ? LIMIT 4";
+$stmt2 = $conn->prepare($sqlQuery2);
+$stmt2->bind_param("si", $product['category'], $productId);
+$stmt2->execute();
+$result2 = $stmt2->get_result();
 ?>
 
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product</title>
-    <link rel="stylesheet" type="text/css" href="CSS/product.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title><?php echo htmlspecialchars($product['item_name']); ?></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .breadcrumb {
+            background: none;
+            font-size: 14px;
+        }
+        .main-img {
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            width: 100%;
+            max-height: 450px;
+            object-fit: cover;
+        }
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: transform 0.2s ease-in-out;
+            margin-right: 5px;
+        }
+        .thumbnail:hover {
+            transform: scale(1.1);
+        }
+        .card {
+            border: none;
+            transition: transform 0.2s ease-in-out;
+        }
+        .card img {
+            border-radius: 10px 10px 0 0;
+            height: 200px;
+            object-fit: cover;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .btn-success {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-    <header>
-    <?php 
-        $page = 'product'; 
-        include 'header.php'; 
-    ?>
-    </header>
-    <main>
-    <section class="breadscrumb">
-        <div class="breadscrumb-container">
-            <div class="items">
-                <a href="index.php">Shop
-                    <i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
-                </a>
-                <a href="shopping_page.php">
-                    <?php echo $product['category'] ?>
-                    <i class="fa fa-angle-right m-l-9 m-r-10" aria-hidden="true"></i>
-                </a>
-                <span><?php echo $product['item_name'] ?></span>
+    <?php $page = 'product'; include 'header.php'; ?>
+
+    <div class="container mt-4">
+        <!-- Fil d'Ariane -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.php">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="shopping_page.php"><?php echo htmlspecialchars($product['category']); ?></a></li>
+                <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($product['item_name']); ?></li>
+            </ol>
+        </nav>
+
+        <!-- Détails du produit -->
+        <div class="row">
+            <div class="col-md-6">
+                <img id="ProductImg" class="img-fluid main-img" src="<?php echo $product['img_name1']; ?>" alt="Produit">
+                <div class="d-flex mt-2">
+                    <?php for ($i = 1; $i <= 4; $i++) {
+                        if (!empty($product['img_name' . $i])) {
+                            echo "<img src='" . $product['img_name' . $i] . "' class='img-thumbnail thumbnail' onclick=\"document.getElementById('ProductImg').src=this.src\" alt='Thumbnail'>";
+                        }
+                    } ?>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <h2><?php echo htmlspecialchars($product['item_name']); ?></h2>
+                <h4 class="text-danger">LKR <?php echo number_format($product['item_price'], 2); ?></h4>
+                <p><?php echo nl2br(htmlspecialchars($product['long_description'])); ?></p>
+
+                <form method="post" action="shopping_cart.php" class="mt-3">
+                    <input type="hidden" name="id" value="<?php echo $productId; ?>">
+                    <label class="fw-bold">Quantité :</label>
+                    <input type="number" name="num-product" value="1" min="1" class="form-control w-25 d-inline">
+                    <button type="submit" name="submit" class="btn btn-success ms-2">🛒 Ajouter au panier</button>
+                </form>
             </div>
         </div>
-    </section>
 
-     <!-- Product Detail -->
-     <section class="product-details">
-        <div class="product-container">
-            <div class="row">
-                <div class="col-product-image">
-                    <div class="small-img-row">
-                        <?php if ($product['img_name1']) {  ?>
-                            <div class="small-img-col">
-                                <img src="<?php echo $product['img_name1'] ?>" alt="IMG" class = "small-img" onclick="document.getElementById('ProductImg').src='<?php echo $product['img_name1'] ?>'">
+        <!-- Produits similaires -->
+        <h3 class="mt-5">Produits similaires</h3>
+        <div class="row">
+            <?php while ($row = $result2->fetch_assoc()) { ?>
+                <div class="col-md-3">
+                    <div class="card">
+                        <a href="item-description.php?itemid=<?php echo $row['item_id']; ?>">
+                            <img src="<?php echo $row['img_name1']; ?>" class="card-img-top" alt="Produit">
+                            <div class="card-body">
+                                <h5 class="card-title"><?php echo htmlspecialchars($row['item_name']); ?></h5>
+                                <p class="card-text text-danger">LKR <?php echo number_format($row['item_price'], 2); ?></p>
                             </div>
-                        <?php } ?>
-                        <?php if ($product['img_name2']) {  ?>
-                            <div class="small-img-col">
-                                <img src="<?php echo $product['img_name2'] ?>" alt="IMG" class = "small-img" onclick="document.getElementById('ProductImg').src='<?php echo $product['img_name2'] ?>'">
-                            </div>
-                        <?php } ?>
-                        <?php if ($product['img_name3']) {  ?>
-                            <div class="small-img-col">
-                                <img src="<?php echo $product['img_name3'] ?>" alt="IMG" class = "small-img" onclick="document.getElementById('ProductImg').src='<?php echo $product['img_name3'] ?>'">
-                            </div>
-                        <?php } ?>
-                        <?php if ($product['img_name4']) {  ?>
-                            <div class="small-img-col">
-                                <img src="<?php echo $product['img_name4'] ?>" alt="IMG" class = "small-img" onclick="document.getElementById('ProductImg').src='<?php echo $product['img_name4'] ?>'">
-                            </div>
-                        <?php } ?>
-                    </div>
-                        <div class="main-image"><img src="<?php echo $product['img_name1'] ?>" id = "ProductImg" alt="IMG" ></div>
-                   
-                </div>
-                <div class="col-product-description">
-                    <div class="product-section">
-                        <h4 class="item-name">
-                            <?php echo $product['item_name'] ?>
-                        </h4>
-                        <span>
-							LKR <?php echo $product['item_price'] ?>/=
-						</span>
-                        <p>
-                            <?php echo $product['long_description'] ?>
-                        </p>
-                            <div class="product-options">
-                                <div class="product-amount">
-                                        <form name="form" method="post">
-                                            <div class="amount-counter">
-                                                <div class="btn-num-product-down" onclick="decrement()">
-                                                    <i class="fa fa-minus"></i>
-                                                </div>
-                                                <script>
-                                                     function decrement(){
-                                                        document.getElementById("num-product").stepDown(1);
-                                                    }
-                                                </script>
-                                                <input class="num-product" type="number" name="num-product" id="num-product" value="1">
-
-                                                <div class="btn-num-product-up" onclick="increment()">
-                                                    <i class="fa fa-plus"></i>
-                                                </div>
-                                                <script>
-                                                   function increment(){
-                                                        document.getElementById("num-product").stepUp(1);
-                                                    }
-                                                </script>
-                                            </div>
-                                            <input type="hidden" name="id" value= "<?php echo $productId ?>" >
-                                            <input type="submit" id="submit" name="submit" formaction="shopping_cart.php" value="Add to cart">
-
-
-                                            <input type='hidden' name='no_of_Products' value='1'>
-                                            <input type='hidden' name='product' value='<?php echo $product['item_id']?>'>
-                                            
-                                           
-                                            <button type="submit" id="submit" name="buy" formaction="paymentpage.php" value="<?php echo $product['item_price']?>">Buy Now</button>
-                                        </form>      
-                                </div>
-                            </div>
+                        </a>
                     </div>
                 </div>
-            </div>
-            <div class="description-tabs">
-            <div class="tab">
-                <button class="tablinks" onclick="display(event, 'description')" id="defaultOpen">Description</button>
-                <button class="tablinks" onclick="display(event, 'howtouse')">HowToUse</button>
-                <button class="tablinks" onclick="display(event, 'ingredients')">Ingredients</button>
-                <button class="tablinks" onclick="display(event, 'essentials')">Essentials</button>
-                </div>
-
-                <div id="description" class="tabcontent">
-                <p><?php echo $product3['long_description'] ?></p>
-                </div>
-
-                <div id="howtouse" class="tabcontent">
-               
-                <p><?php echo $product3['HowToUse'] ?></p> 
-                </div>
-
-                <div id="ingredients" class="tabcontent">
-                
-                <p><?php echo $product3['ingredients'] ?></p>
-                </div>
-                <div id="essentials" class="tabcontent">
-                
-                <p><?php echo $product3['essentials'] ?></p>
-                </div>
-
-                <script>
-                function display(evt, tabname) {
-                var i, tabcontent, tablinks;
-                tabcontent = document.getElementsByClassName("tabcontent");
-                for (i = 0; i < tabcontent.length; i++) {
-                    tabcontent[i].style.display = "none";
-                }
-                tablinks = document.getElementsByClassName("tablinks");
-                for (i = 0; i < tablinks.length; i++) {
-                    tablinks[i].className = tablinks[i].className.replace(" active", "");
-                }
-                document.getElementById(tabname).style.display = "block";
-                evt.currentTarget.className += " active";
-                }
-
-                document.getElementById("defaultOpen").click();
-                </script>
+            <?php } ?>
         </div>
-        </div>
-    </section>
+    </div>
 
-     <!-- Related Products -->
-     <section class="related-products">
-        <div class="container">
-            <div class="relate-product-header">
-                <h3 class="main-text">
-                    Related Products
-                </h3>
-                <hr>
-            </div>
-            <div class="row">
-                <!-- Products -->
-                <?php $count = 1;
-                while($row = $result2->fetch_assoc()){
-                    if($count <=4 ){
-                        ?>
-                        <div class="col-sm-6 col-md-4 col-lg-3 p-b-35 isotope-item">
-                            <div class="block2">
-                                <div class="block2-pic hov-img1">
-                                <a href="item-description.php?itemid=<?php echo $row['item_id'] ?>"
-                                       class="block2-btn"><img src="<?php echo $row['img_name1'] ?>" alt="IMG-PRODUCT" width="200px" height="200px">
-                                        View
-                                    </a>
-                                </div>
-
-                                <div class="block2-txt flex-w flex-t p-t-14">
-                                    <div class="block2-txt-child1 flex-col-l ">
-                                        <?php echo $row['item_name'] ?>
-                                        <div class="stext-105 cl3">
-                                        LKR <?php echo $row['item_price'] ?>
-                                    </div>
-                                    <p>Rating : 
-                                    <span><i class="fa fa-star"></i></span>
-                                    <span><i class="fa fa-star"></i></span>
-                                    <span><i class="fa fa-star"></i></span>
-                                    <span><i class="fa fa-star"></i></span>
-                                    <span><i class="fa fa-star"></i></span> </p>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-                        <?php
-                        $count++;
-                    }
-                } ?>
-            </div>
-        </div>
-    </section>
-    <section class="ratings">
-        <div class="category">
-                        <div ><h3 class="main-text">Ratings & Reviews</h3></div>
-                        <hr>
-                        <span><i class="fa fa-star"></i></span>
-                        <span><i class="fa fa-star"></i></span>
-                        <span><i class="fa fa-star"></i></span>
-                        <span><i class="fa fa-star"></i></span>
-                        <span><i class="fa fa-star"></i></span>
-                        <button style="padding:10px" class="reviewbtn" >WRITE A REVIEW FOR THE PRODUCT</button>
-        </div>
-    </section>
-
-    </main>
-    <footer>
-        <?php
-
-            include "footer.php";
-        ?>
-    </footer>
+    <?php include "footer.php"; ?>
 </body>
 </html>

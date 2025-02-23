@@ -2,56 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SignUp</title>
-    <link rel="stylesheet" type="text/css" href="CSS/signupstyle.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .signup-container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-<main>  
-<div class="signup-container">
-    <div class="row" style="background-color: white;">
-                <div class="signup-items">
-                    <div class="signup"><h1 style="text-align: center;">SignUp</h1><br><h2>Welcome to Beauty Garden</h2></div>
-                    <div class="para1">See your growth and get consulting support!</div><br><hr><br>
-                    <div class="form">
-                        <form name="signup" action="signupcheck.php" method="POST">
-
-                        <?php if (isset($_GET['success'])) { ?>
-                                <h1 class="success"><?php echo $_GET['success']; ?></h1><br>
-                            <?php } ?>
-
-                            <?php if (isset($_GET['error'])) { ?>
-                                <p class="error"><?php echo $_GET['error']; ?></p><br>
-                            <?php } ?>
-                           <div class="form-rows"><div class="form-group1"><label for="fname" class="inputnames">First Name* </label>
-                            <input type="text" name="fname" id="fname" class="form-control"></div>
-                            <div class="form-group2"><label for="lname" class="inputnames">Last Name* </label>
-                            <input type="text" name="lname" id="lname" style="width:200px" class="form-control"></div><br><br></div><br>
-                            <div class="form-group"><label for="email" class="inputnames">Email*</label>
-                            <input type="text" name="email" id="email" class="form-control" style="width:490px"></div><br><br>
-                            <div class="form-rows"><div class="form-group"><label for="Address" class="inputnames">Address Line 1 </label>
-                            <input type="text" name="addressline1" id="address" class="form-control"></div>
-                            <div class="form-group"><label for="Address" class="inputnames">Address Line 2 </label>
-                            <input type="text" name="addressline2" id="address" class="form-control"></div></div><br>
-                            <div class="form-rows"><div class="form-group"><label for="Address" class="inputnames">City </label>
-                            <input type="text" name="city" id="address" class="form-control" ></div>
-                            <div class="form-group" style="margin-left:70px;"><label for="Address" class="inputnames" style="width:100px">Postal Code </label>
-                            <input type="text" name="postalcode" id="address" class="form-control" ></div></div><br>
-                            <div class="form-group"><label for="password" class="inputnames">Password*</label>
-                            <input type="password" name="password" id="password" class="form-control" style="width:490px"></div><br><br> 
-                            <div class="form-group"><label for="confpwd" class="inputnames">Confirm Password* </label>
-                            <input type="password" name="confpwd" id="confpwd" class="form-control" style="width:490px"></div><br><br>
-                          
-                            <span><input type="submit" id="signup" name="submit" value="CreateAccount"></span>
-                            <span><a href="index.php" class="homebtn">Back To Home</a></span>
-
-                        </form>
-                        <div class="signin" >Aready have an account ? <a href="sign_in.php" style="color: blue;">Sign In</a></div>
+<main>
+    <div class="container">
+        <div class="signup-container">
+            <h1 class="text-center">Sign Up</h1>
+            <h2 class="text-center">Welcome to Beauty Garden</h2>
+            <p class="text-center">See your growth and get consulting support!</p>
+            <hr>
+            <form name="signup" action="signupcheck.php" method="POST">
+                <?php if (isset($_GET['success'])) { ?>
+                    <div class="alert alert-success"> <?php echo $_GET['success']; ?> </div>
+                <?php } ?>
+                <?php if (isset($_GET['error'])) { ?>
+                    <div class="alert alert-danger"> <?php echo $_GET['error']; ?> </div>
+                <?php } ?>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="Fname">First Name*</label>
+                            <input type="text" name="Fname" id="fname" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="Lname">Last Name*</label>
+                            <input type="text" name="Lname" id="lname" class="form-control" required>
+                        </div>
                     </div>
                 </div>
-            </div>
+                <div class="mb-3">
+                    <label for="Email">Email*</label>
+                    <input type="email" name="Email" id="email" class="form-control" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="Password">Password*</label>
+                    <input type="password" name="Password" id="password" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="confpwd">Confirm Password*</label>
+                    <input type="password" name="confpwd" id="confpwd" class="form-control" required>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" name="submit" class="btn btn-primary">Create Account</button>
+                    <a href="index.php" class="btn btn-secondary">Back To Home</a>
+                </div>
+            </form>
+            <p class="text-center mt-3">Already have an account? <a href="sign_in.php">Sign In</a></p>
+        </div>
     </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
